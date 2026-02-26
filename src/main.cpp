@@ -26,7 +26,6 @@ SOFTWARE.
 #include <Arduino.h>
 #include <AccelStepper.h>
 #include <nRF24L01.h>
-#include <RF24_config.h>
 #include <RF24.h>
 
 //Radio Chip Select & Chip Enable pins
@@ -48,18 +47,19 @@ const unsigned int stepZ = 5;
 //Driver enable pin
 const unsigned int pinEnable = 10;
 
-//Radio address
-const byte address[5] = {0, 0, 0, 0, 0};
+// Radio address — do NOT use all-zero address (causes broadcast collisions)
+// Must match transmitter exactly.
+const byte address[6] = "00001";
 
-//Package structure to be receive
-struct Packet {
-  boolean moveX;
-  long speedX;
-  boolean moveY;
-  long speedY;
-  boolean moveZ;
-  long speedZ;
-  boolean enable;
+// Packet structure — packed and using 16-bit speeds to match transmitter
+struct __attribute__((packed)) Packet {
+  bool    moveX;
+  int16_t speedX;
+  bool    moveY;
+  int16_t speedY;
+  bool    moveZ;
+  int16_t speedZ;
+  bool    enable;
 };
 
 //AccelStepper fixed variables
@@ -75,24 +75,8 @@ AccelStepper motorZ(AccelStepper::DRIVER, stepZ, dirZ);
 //Radio pins connected to CE and CSN of the module
 RF24 radio(radioCE, radioCS);
 
-//Initilize packet to receive
-Packet pkt = {
-  //boolean moveX;
-  false,
-  //long speedX;
-  0,
-  //boolean moveY;
-  false,
-  //long speedY;
-  0,
-  //boolean moveZ;
-  false,
-  //long speedZ;
-  0,
-  //boolean enable;
-  false,
-  
-};
+// Initialize packet to safe stopped state
+Packet pkt = { false, 0, false, 0, false, 0, false };
 
 void setup() {
 
